@@ -1,0 +1,23 @@
+[project]
+name = "dd_seq"
+version = "0.1.0"
+description = "Compare all known structures (PDB + AlphaFold DB) of a protein: sequence coverage vs. the canonical UniProt sequence, and active-site-based structural (RMSD) alignment, with interactive visualization"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = ["biopython", "pandas", "numpy", "dd_prep", "dd_af"]
+
+[project.optional-dependencies]
+app = ["streamlit", "py3Dmol", "matplotlib"]
+
+[project.scripts]
+dd_seq-fetch = "dd_seq.cli:main_fetch"
+dd_seq-align = "dd_seq.cli:main_align"
+dd_seq-run = "dd_seq.cli:main_run"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["dd_seq"]

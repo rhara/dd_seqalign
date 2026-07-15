@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+*.html
+.pytest_cache/
+
+data/raw/
+data/aligned/
+data/canonical.fasta
+data/manifest.json
+data/report.json
