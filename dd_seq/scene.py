@@ -4,10 +4,11 @@ color -- not the per-chain "spectrum" rainbow `dd_viewer.scene` uses for a
 single receptor, since with a dozen structures overlaid, telling
 *structures* apart matters more than telling chains within one apart.
 Active-site residues (if a site was used for the fit) are drawn as sticks
-in one shared highlight color across every structure, so the same site
-stays visually traceable across the whole overlay; each structure's own
-ligand, if it has one, can be toggled on as sticks in that structure's
-color.
+with carbon in one shared highlight color across every structure (other
+elements in their standard color, so heteroatoms stay identifiable), so
+the same site stays visually traceable across the whole overlay; each
+structure's own ligand, if it has one, can be toggled on as sticks in
+that structure's color.
 """
 from __future__ import annotations
 
@@ -25,6 +26,13 @@ PALETTE = [
 ]
 AFDB_COLOR = "#444444"
 SITE_COLOR = "yellow"
+# A true 3Dmol.js "line" style (no radius, plain GL_LINE) turned out too thin
+# to read once it was the only thing drawn for a structure -- most browsers
+# clamp GL_LINE width to 1px regardless of any requested `linewidth`, so it
+# can't be thickened directly. A thin `stick` (a real cylinder, so its
+# thickness is a controllable radius) is used instead, at a radius well below
+# the site-highlight/ligand sticks below so it still reads as "background".
+POCKET_WIRE_RADIUS = 0.08
 
 # 3Dmol.js's built-in "*Carbon" colorschemes (e.g. "yellowCarbon") do exactly
 # this -- tint carbon, leave every other element at its RasMol default -- but
@@ -91,17 +99,22 @@ def build_overlay_view(
     whenever its embedding container (e.g. a narrower Streamlit column)
     ends up smaller than that width.
 
+    The site-highlight sticks (when `highlight_site` is on) are always
+    colored by element (`_carbon_tint_scheme(SITE_COLOR)`) rather than one
+    flat `SITE_COLOR`, regardless of `focus_on_site` -- carbon stays
+    `SITE_COLOR` so the highlight still reads clearly, while O/N/S/P/
+    halogens show their standard color instead of being flattened to it.
+
     `focus_on_site`: if True, structures with a `site_resseqs` skip the
     whole-chain cartoon and only draw residues within `focus_radius`
-    angstroms of the site (as a thin wireframe, colored pale so any
-    shown ligand -- drawn full-strength for contrast -- stands out), so
+    angstroms of the site (as thin sticks, colored pale so any shown
+    ligand -- drawn full-strength for contrast -- stands out), so
     everything outside the pocket is hidden rather than merely
-    un-highlighted. Both the pocket wireframe and the ligand are
-    colored by element (`_carbon_tint_scheme`) rather than one flat
-    color, so heteroatoms (O/N/S/P/halogens) stay identifiable at this
-    zoomed-in, atom-level view. Structures without a site fall back to
-    the normal whole-chain cartoon, since there's nothing defined to
-    focus around.
+    un-highlighted. Those pocket sticks and the ligand are likewise
+    colored by element rather than one flat color, so heteroatoms stay
+    identifiable at this zoomed-in, atom-level view. Structures without a
+    site fall back to the normal whole-chain cartoon, since there's
+    nothing defined to focus around.
     """
     view = py3Dmol.view(width=width, height=height)
     colors = colors or assign_colors([s["label"] for s in structures])
@@ -127,14 +140,17 @@ def build_overlay_view(
                 "byres": True,
                 "within": {"distance": focus_radius, "sel": {**chain_sel, "resi": list(site)}},
             }
-            view.setStyle(pocket_sel, {"line": {"colorscheme": _carbon_tint_scheme(_lighten(color))}})
+            view.setStyle(
+                pocket_sel,
+                {"stick": {"colorscheme": _carbon_tint_scheme(_lighten(color)), "radius": POCKET_WIRE_RADIUS}},
+            )
         else:
             view.setStyle(chain_sel, {"cartoon": {"color": color}})
 
         if site and s.get("highlight_site", True):
             view.addStyle(
                 {"model": model_index, "chain": s["chain_id"], "resi": list(site)},
-                {"stick": {"color": SITE_COLOR, "radius": 0.25}},
+                {"stick": {"colorscheme": _carbon_tint_scheme(SITE_COLOR), "radius": 0.25}},
             )
 
         if s.get("show_ligand"):
