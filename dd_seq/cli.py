@@ -18,6 +18,7 @@ def build_fetch_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("uniprot", help="UniProt accession, e.g. P06493")
     parser.add_argument("-o", "--out-dir", required=True, help="Output directory")
+    parser.add_argument("--no-progress", action="store_true", help="Suppress the one-line-per-item progress output")
     return parser
 
 
@@ -31,6 +32,7 @@ def _add_align_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--site-source", default=None, help="Label of the structure the active site is defined on (default: auto -- see README)")
     parser.add_argument("--ligand-cutoff", type=float, default=5.0, help="Angstrom cutoff for --site-mode ligand (default: 5.0)")
     parser.add_argument("--pocket-rank", type=int, default=1, help="Druggability-ranked pocket to use for --site-mode pocket (default: 1, top-ranked)")
+    parser.add_argument("--no-progress", action="store_true", help="Suppress the one-line-per-item progress output")
 
 
 def build_align_parser() -> argparse.ArgumentParser:
@@ -56,9 +58,9 @@ def build_run_parser() -> argparse.ArgumentParser:
 
 def main_fetch(argv=None) -> None:
     args = build_fetch_parser().parse_args(argv)
-    manifest = pipeline.fetch_all(args.uniprot, args.out_dir)
+    manifest = pipeline.fetch_all(args.uniprot, args.out_dir, show_progress=not args.no_progress)
     n_pdb = sum(1 for e in manifest["entries"] if e["kind"] == "pdb")
-    print(f"[done] {n_pdb} PDB entr{'y' if n_pdb == 1 else 'ies'} + 1 AlphaFold model -> {args.out_dir}")
+    print(f"\n[done] {n_pdb} PDB entr{'y' if n_pdb == 1 else 'ies'} + 1 AlphaFold model -> {args.out_dir}")
     for s in manifest.get("skipped", []):
         print(f"  [skipped] {s['label']}: {s['reason']}")
 
@@ -67,23 +69,23 @@ def main_align(argv=None) -> None:
     args = build_align_parser().parse_args(argv)
     report = pipeline.analyze(
         args.out_dir, site_mode=args.site_mode, reference=args.reference, site_source=args.site_source,
-        ligand_cutoff=args.ligand_cutoff, pocket_rank=args.pocket_rank,
+        ligand_cutoff=args.ligand_cutoff, pocket_rank=args.pocket_rank, show_progress=not args.no_progress,
     )
     _print_report(report, args.out_dir)
 
 
 def main_run(argv=None) -> None:
     args = build_run_parser().parse_args(argv)
-    pipeline.fetch_all(args.uniprot, args.out_dir)
+    pipeline.fetch_all(args.uniprot, args.out_dir, show_progress=not args.no_progress)
     report = pipeline.analyze(
         args.out_dir, site_mode=args.site_mode, reference=args.reference, site_source=args.site_source,
-        ligand_cutoff=args.ligand_cutoff, pocket_rank=args.pocket_rank,
+        ligand_cutoff=args.ligand_cutoff, pocket_rank=args.pocket_rank, show_progress=not args.no_progress,
     )
     _print_report(report, args.out_dir)
 
 
 def _print_report(report: dict, out_dir: str) -> None:
-    print(f"[{report['uniprot_id']}] site_mode={report['site_mode']} site_source={report['site_source']} reference={report['reference']}")
+    print(f"\n[{report['uniprot_id']}] site_mode={report['site_mode']} site_source={report['site_source']} reference={report['reference']}")
     for s in report["structures"]:
         res = f"{s['resolution']:.2f}A" if s["resolution"] else "-"
         rmsd = f"{s['rmsd']:.3f} ({s['n_site_atoms']} atoms)" if s["rmsd"] is not None else f"SKIPPED: {s['align_error']}"

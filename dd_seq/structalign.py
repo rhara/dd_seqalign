@@ -71,13 +71,21 @@ def _cealign(cmd, mobile: StructureInput, ref: StructureInput) -> AlignmentResul
 
 
 def align_structures(
-    structures: Sequence[StructureInput], reference_label: str, out_dir: Union[str, Path], *, site_mode: str = "none",
+    structures: Sequence[StructureInput], reference_label: str, out_dir: Union[str, Path], *,
+    site_mode: str = "none", show_progress: bool = True,
 ) -> List[AlignmentResult]:
     """Superpose every structure in `structures` onto `reference_label`
     and save each (including the unmoved reference, for a consistent
     output set) to `out_dir/{label}_aligned.pdb`. `site_mode` selects
     `_pair_fit` (`"pocket"`/`"ligand"` -- requires `site_resseqs` set on
     every non-reference `StructureInput`) or `_cealign` (`"none"`).
+
+    `show_progress` prints one line per completed fit (`print(...,
+    flush=True)`) -- PyMOL's own `cmd.pair_fit` already writes an
+    unlabeled `ExecutiveRMSPairs: RMSD = ...` line to stdout on its own,
+    which is not disabled here, but doesn't say *which* structure it was
+    for when fitting several in a row, hence this project's own labeled
+    line alongside it.
     """
     if site_mode not in SITE_MODES:
         raise ValueError(f"site_mode must be one of {SITE_MODES}, got {site_mode!r}")
@@ -100,10 +108,11 @@ def align_structures(
         ref_out = out_dir / f"{reference.label}_aligned.pdb"
         cmd.save(str(ref_out), reference.label)
         results.append(AlignmentResult(reference.label, reference.label, site_mode, 0.0, 0, str(ref_out)))
+        if show_progress:
+            print(f"[structalign] {reference.label}: reference (unmoved) -> {ref_out.name}", flush=True)
 
-        for s in structures:
-            if s.label == reference_label:
-                continue
+        mobiles = [s for s in structures if s.label != reference_label]
+        for i, s in enumerate(mobiles, start=1):
             try:
                 result = _cealign(cmd, s, reference) if site_mode == "none" else _pair_fit(cmd, s, reference)
             except Exception as e:
@@ -112,10 +121,14 @@ def align_structures(
                 # simply aren't resolved in this particular entry) shouldn't
                 # abort the fit for every other structure in the batch.
                 results.append(AlignmentResult(s.label, reference_label, site_mode, None, 0, "", error=str(e)))
+                if show_progress:
+                    print(f"[structalign] ({i}/{len(mobiles)}) {s.label}: SKIPPED ({e})", flush=True)
                 continue
             out_pdb = out_dir / f"{s.label}_aligned.pdb"
             cmd.save(str(out_pdb), s.label)
             result.aligned_pdb = str(out_pdb)
             results.append(result)
+            if show_progress:
+                print(f"[structalign] ({i}/{len(mobiles)}) {s.label}: rmsd={result.rmsd:.3f} ({result.n_atoms} atoms) -> {out_pdb.name}", flush=True)
 
     return results

@@ -15,9 +15,14 @@ rather than reimplementing either.
   finds every PDB entry cross-referenced to the accession; each is
   downloaded via `dd_prep.fetch.download_pdb`, plus the AlphaFold DB model
   via `dd_prep.fetch.download_afdb` and the canonical sequence via the
-  UniProt REST API. A handful of very recently released entries have no
-  legacy `.pdb` file yet (mmCIF-only) -- these are skipped, not fatal, and
-  recorded in `manifest.json`'s `"skipped"` list.
+  UniProt REST API. Re-running against the same `-o` directory skips
+  anything already on disk (canonical.fasta, each PDB entry, the AlphaFold
+  model) rather than re-downloading it, printing `already downloaded,
+  skipping` for each -- `list_pdb_ids_for_uniprot` itself is still queried
+  fresh every run, so a newly-released entry gets picked up on a re-run
+  without re-fetching everything else. A handful of very recently released
+  entries have no legacy `.pdb` file yet (mmCIF-only) -- these are skipped,
+  not fatal, and recorded in `manifest.json`'s `"skipped"` list.
 - **Align (`dd_seq-align`)**: for every fetched structure, extracts each
   chain's sequence (`sequence.py`, Biopython) and glocal-aligns it against
   the canonical sequence (free end gaps -- every input is a fragment/
@@ -81,6 +86,11 @@ on apo/AlphaFold structures too), or `none` (no active-site restriction,
 whole-chain CE alignment). `--reference`/`--site-source` override the
 defaults described above; `--ligand-cutoff`/`--pocket-rank` tune site
 detection.
+
+All three commands print one line per completed item as it happens
+(fetch/skip per structure, sequence-alignment result per structure,
+structural-fit result or skip reason per structure) -- pass
+`--no-progress` to suppress this and only print the final summary table.
 
 ## Design notes
 
