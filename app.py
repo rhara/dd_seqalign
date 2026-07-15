@@ -61,6 +61,15 @@ def main() -> None:
             "Highlight active-site residues", value=has_site, disabled=not has_site,
             help=None if has_site else "This report was built with --site-mode none, so no active site was defined.",
         )
+        focus_on_site = st.checkbox(
+            "Show only active-site surroundings", value=False, disabled=not has_site,
+            help="Hide everything except residues near the active site." if has_site
+            else "This report was built with --site-mode none, so no active site was defined.",
+        )
+        focus_radius = st.slider(
+            "Pocket radius (Å)", min_value=4.0, max_value=15.0, value=8.0, step=0.5,
+            disabled=not (has_site and focus_on_site),
+        )
 
         if "camera_generation" not in st.session_state:
             st.session_state.camera_generation = 0
@@ -88,14 +97,15 @@ def main() -> None:
                     "label": label,
                     "pdb_path": s["aligned_pdb"],
                     "chain_id": s["chain"],
-                    "site_resseqs": s["site_resseqs"] if show_site else None,
+                    "site_resseqs": s["site_resseqs"] if has_site else None,
+                    "highlight_site": show_site,
                     "show_ligand": show_ligands,
                 }
             )
         if not scene_structures:
             st.info("No selected structure has a superposed coordinate file to show (all skipped during alignment?).")
         else:
-            view = scene.build_overlay_view(scene_structures)
+            view = scene.build_overlay_view(scene_structures, focus_on_site=focus_on_site, focus_radius=focus_radius)
             html = html_with_camera_events(view._make_html())
             view3d(html, height=650, reset_camera_token=st.session_state.camera_generation)
 

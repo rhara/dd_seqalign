@@ -63,7 +63,13 @@ rather than reimplementing either.
   default fit; a "Reset view" button clears it back to that default fit
   on demand. The "Highlight active-site residues" checkbox is disabled
   when the report was built with `--site-mode none` (there is no site to
-  highlight in that case).
+  highlight in that case). The "Show only active-site surroundings"
+  checkbox (also disabled under `--site-mode none`) goes further than
+  highlighting: instead of the whole-chain cartoon, each structure only
+  shows residues within a configurable radius of the active site (the
+  "Pocket radius" slider, default 8 Å) as sticks, with everything else
+  hidden -- built via 3Dmol.js's `within`+`byres` selectors to pull in
+  whole residues near the site rather than a fixed-width cartoon ribbon.
 
 ## Installation
 
