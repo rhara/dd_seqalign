@@ -52,7 +52,10 @@ rather than reimplementing either.
   with a recorded reason rather than aborting the whole batch.
 - **Run (`dd_seq-run`)**: fetch + align in one step.
 - **App (`streamlit run app.py -- --report-dir DIR`)**: three tabs --
-  Overview (per-structure method/resolution/coverage/RMSD table),
+  Overview (per-structure method/resolution/coverage/RMSD table -- sized
+  via an explicit `height` computed from the row count so the table
+  itself never grows its own internal scrollbar; every structure is
+  always visible, with the page scrolling normally instead),
   Sequence coverage (a match/mismatch/not-resolved track per structure
   across canonical positions), Structure overlay (py3Dmol, every
   structure's target chain superposed and colored distinctly, active site

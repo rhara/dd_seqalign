@@ -51,7 +51,10 @@
   スキップされる。
 - **Run（`dd_seq-run`）**: fetchとalignを1ステップで実行する。
 - **App（`streamlit run app.py -- --report-dir DIR`）**: 3タブ構成——
-  Overview（構造ごとのmethod/resolution/coverage/RMSD表）、Sequence
+  Overview（構造ごとのmethod/resolution/coverage/RMSD表——テーブル自体の
+  内部スクロールバーが出ないよう、行数に合わせて`height`を計算して渡し、
+  全行を常に表示する。ページ自体は必要に応じて普通にスクロールする）、
+  Sequence
   coverage（正準位置にまたがる構造ごとのmatch/mismatch/not-resolved
   トラック）、Structure overlay（py3Dmol、各構造の対象鎖を重ね合わせて
   色分けし、アクティブサイトをハイライト、リガンド表示は任意）。表示する

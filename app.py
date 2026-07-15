@@ -95,7 +95,12 @@ def main() -> None:
     tab_overview, tab_coverage, tab_overlay = st.tabs(["Overview", "Sequence coverage", "Structure overlay"])
 
     with tab_overview:
-        st.dataframe(dashboard.summary_dataframe(report), width="stretch", hide_index=True)
+        summary = dashboard.summary_dataframe(report)
+        # st.dataframe's default height clips to a handful of rows and
+        # scrolls internally past that -- sizing it to the exact row count
+        # instead makes the table expand to show every structure at once,
+        # relying on the page's own scroll rather than a nested one.
+        st.dataframe(summary, width="stretch", height=(len(summary) + 1) * 35 + 3, hide_index=True)
 
     with tab_coverage:
         fig = seqplot.plot_coverage(structures, site_canonical_positions=report.get("site_canonical_positions"))
