@@ -26,6 +26,37 @@ PALETTE = [
 AFDB_COLOR = "#444444"
 SITE_COLOR = "yellow"
 
+# 3Dmol.js's built-in "*Carbon" colorschemes (e.g. "yellowCarbon") do exactly
+# this -- tint carbon, leave every other element at its RasMol default -- but
+# only for a fixed set of named CSS colors, not arbitrary hex. This is the
+# same RasMol table those built-ins tint (3Dmol.js `elementColors.rasmol`),
+# copied here so any per-structure hex can be used as the carbon tint via a
+# `{"prop": "elem", "map": {...}}` colorscheme instead of a scheme name.
+_HETERO_ELEMENT_COLORS = {
+    "H": "#ffffff", "He": "#ffc0cb", "Li": "#b22222", "B": "#00ff00",
+    "N": "#8f8fff", "O": "#f00000", "F": "#daa520", "Na": "#0000ff",
+    "Mg": "#228b22", "Al": "#808090", "Si": "#daa520", "P": "#ffa500",
+    "S": "#ffc832", "Cl": "#00ff00", "Ca": "#808090", "Ti": "#808090",
+    "Cr": "#808090", "Mn": "#808090", "Fe": "#ffa500", "Ni": "#a52a2a",
+    "Cu": "#a52a2a", "Zn": "#a52a2a", "Br": "#a52a2a", "Ag": "#808090",
+    "I": "#a020f0", "Ba": "#ffa500", "Au": "#daa520",
+}
+
+
+def _carbon_tint_scheme(carbon_color: str) -> dict:
+    """A 3Dmol.js colorscheme that colors carbon `carbon_color` and every
+    other element by its standard (RasMol) color, so O/N/S/P etc. stay
+    visually identifiable instead of being flattened to one solid color."""
+    return {"prop": "elem", "map": {**_HETERO_ELEMENT_COLORS, "C": carbon_color}}
+
+
+def _lighten(hex_color: str, amount: float = 0.55) -> str:
+    """Blend `hex_color` toward white by `amount` (0 = unchanged, 1 = white)."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    r, g, b = (round(c + (255 - c) * amount) for c in (r, g, b))
+    return f"#{r:02x}{g:02x}{b:02x}"
+
 
 def assign_colors(labels: Sequence[str], afdb_label: str = "AFDB") -> Dict[str, str]:
     """One color per label, cycling through `PALETTE`; `afdb_label` (if
@@ -62,10 +93,15 @@ def build_overlay_view(
 
     `focus_on_site`: if True, structures with a `site_resseqs` skip the
     whole-chain cartoon and only draw residues within `focus_radius`
-    angstroms of the site (as sticks), so everything outside the pocket
-    is hidden rather than merely un-highlighted. Structures without a
-    site fall back to the normal whole-chain cartoon, since there's
-    nothing defined to focus around.
+    angstroms of the site (as a thin wireframe, colored pale so any
+    shown ligand -- drawn full-strength for contrast -- stands out), so
+    everything outside the pocket is hidden rather than merely
+    un-highlighted. Both the pocket wireframe and the ligand are
+    colored by element (`_carbon_tint_scheme`) rather than one flat
+    color, so heteroatoms (O/N/S/P/halogens) stay identifiable at this
+    zoomed-in, atom-level view. Structures without a site fall back to
+    the normal whole-chain cartoon, since there's nothing defined to
+    focus around.
     """
     view = py3Dmol.view(width=width, height=height)
     colors = colors or assign_colors([s["label"] for s in structures])
@@ -91,7 +127,7 @@ def build_overlay_view(
                 "byres": True,
                 "within": {"distance": focus_radius, "sel": {**chain_sel, "resi": list(site)}},
             }
-            view.setStyle(pocket_sel, {"stick": {"color": color, "radius": 0.15}})
+            view.setStyle(pocket_sel, {"line": {"colorscheme": _carbon_tint_scheme(_lighten(color))}})
         else:
             view.setStyle(chain_sel, {"cartoon": {"color": color}})
 
@@ -105,9 +141,12 @@ def build_overlay_view(
             groups = classify_hetero_groups(collect_hetero_groups(pdb_text))
             ligand = pick_ligand_of_interest(groups)
             if ligand is not None:
+                ligand_color = (
+                    {"colorscheme": _carbon_tint_scheme(color)} if focus_on_site else {"color": color}
+                )
                 view.addStyle(
                     {"model": model_index, "chain": ligand.chain, "resi": ligand.resseq, "resn": ligand.resname},
-                    {"stick": {"color": color, "radius": 0.3}},
+                    {"stick": {**ligand_color, "radius": 0.3}},
                 )
 
     view.zoomTo()

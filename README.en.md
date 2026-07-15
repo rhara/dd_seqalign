@@ -67,9 +67,18 @@ rather than reimplementing either.
   checkbox (also disabled under `--site-mode none`) goes further than
   highlighting: instead of the whole-chain cartoon, each structure only
   shows residues within a configurable radius of the active site (the
-  "Pocket radius" slider, default 8 Å) as sticks, with everything else
-  hidden -- built via 3Dmol.js's `within`+`byres` selectors to pull in
-  whole residues near the site rather than a fixed-width cartoon ribbon.
+  "Pocket radius" slider, default 8 Å) as a thin wireframe (`line` style),
+  with everything else hidden -- built via 3Dmol.js's `within`+`byres`
+  selectors to pull in whole residues near the site rather than a
+  fixed-width cartoon ribbon. That pocket wireframe is colored with each
+  structure's color lightened toward white, while any shown ligand keeps
+  its full-strength color, so the ligand reads as visually distinct from
+  the paler protein background. Both the pocket wireframe and the ligand
+  are colored element-wise -- carbon tinted to the (lightened/full)
+  structure color, every other element (O/N/S/P, halogens, ...) in its
+  standard RasMol color -- the same trick 3Dmol.js's built-in `"*Carbon"`
+  colorschemes (e.g. `"yellowCarbon"`) use, reimplemented here so it
+  works with any hex color instead of only named CSS colors.
 
 ## Installation
 
