@@ -56,7 +56,13 @@ rather than reimplementing either.
   Sequence coverage (a match/mismatch/not-resolved track per structure
   across canonical positions), Structure overlay (py3Dmol, every
   structure's target chain superposed and colored distinctly, active site
-  highlighted, ligands optional). The 3D scene is embedded via
+  highlighted, ligands optional). Which structures to show is picked via
+  one checkbox per structure (all on by default) rather than a dropdown
+  multiselect, alongside "Select all"/"Deselect all" buttons -- this
+  makes it quick to move between overlaying a dozen structures at once
+  and narrowing down to just a couple for a focused comparison (clearing
+  everything and re-checking the few of interest is faster than removing
+  pills one at a time from a multiselect). The 3D scene is embedded via
   `dd_viewer`'s double-buffered `view3d` component rather than a plain
   `st.components.v1.html` call, so the camera position (rotation/zoom)
   survives every widget interaction instead of snapping back to the

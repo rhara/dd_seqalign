@@ -54,7 +54,12 @@
   Overview（構造ごとのmethod/resolution/coverage/RMSD表）、Sequence
   coverage（正準位置にまたがる構造ごとのmatch/mismatch/not-resolved
   トラック）、Structure overlay（py3Dmol、各構造の対象鎖を重ね合わせて
-  色分けし、アクティブサイトをハイライト、リガンド表示は任意）。3D
+  色分けし、アクティブサイトをハイライト、リガンド表示は任意）。表示する
+  構造は、ドロップダウン式のmultiselectではなく構造ごとのチェックボックス
+  （初期値は全てオン）で選ぶ——「Select all」/「Deselect all」ボタンも
+  添えてあり、十数構造まとめての重ね合わせと、少数だけに絞った比較との間を
+  素早く行き来できる（全オフにしてから見たい構造だけチェックし直す方が、
+  多数のpillが並ぶmultiselectから1つずつ外すより速い）。3D
   シーンはプレーンな`st.components.v1.html`呼び出しではなく`dd_viewer`の
   ダブルバッファリング`view3d`コンポーネント経由で埋め込まれるため、
   ウィジェット操作のたびに既定のフィット表示へ戻るのではなく、カメラ位置

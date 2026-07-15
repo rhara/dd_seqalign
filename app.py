@@ -54,7 +54,23 @@ def main() -> None:
 
     with st.sidebar:
         st.header("Overlay display")
-        selected = st.multiselect("Structures to show", labels, default=labels)
+        st.write("Structures to show")
+        select_all_col, deselect_all_col = st.columns(2)
+        if select_all_col.button("Select all", width="stretch"):
+            for label in labels:
+                st.session_state[f"show_struct_{label}"] = True
+        if deselect_all_col.button("Deselect all", width="stretch"):
+            for label in labels:
+                st.session_state[f"show_struct_{label}"] = False
+        # One checkbox per structure (all on by default) rather than a
+        # multiselect -- a dozen-structure overlay and a two-structure
+        # comparison are both common use cases, and toggling individual
+        # checkboxes (plus the all-on/all-off buttons above for jumping
+        # between those two extremes) is faster for both than repeatedly
+        # opening a dropdown to add/remove pills one at a time.
+        for label in labels:
+            st.checkbox(label, value=True, key=f"show_struct_{label}")
+        selected = [label for label in labels if st.session_state[f"show_struct_{label}"]]
         show_ligands = st.checkbox("Show ligands", value=True)
         has_site = report["site_mode"] != "none"
         show_site = st.checkbox(
