@@ -1,68 +1,66 @@
+[English version](README.en.md)
+
 # dd_seq
 
-Compares every known structure of a protein -- every PDB entry cross-
-referenced to a UniProt accession (X-ray, EM, any oligomeric state or
-fragment), plus the AlphaFold DB predicted model -- on two axes: sequence
-coverage against the canonical UniProt sequence, and active-site-based
-structural (RMSD) alignment. Designed as a reusable package, not tied to
-any specific target (same philosophy as `dd_prep`/`dd_af`/`dd_viewer`/etc.
--- every example below uses human CDK1, UniProt `P06493`, but any
-accession works). Reuses `dd_prep` (structure download, HETATM
-classification) and `dd_af` (fpocket-based pocket detection) directly
-rather than reimplementing either.
+蛋白質の既知の構造すべて——UniProtアクセッション番号に紐付く全PDBエントリ
+（X線でもEMでも、オリゴマー状態や断片は問わない）に加えAlphaFold DBの予測
+構造——を、UniProt正準配列に対する配列カバレッジと、アクティブサイト基準の
+構造（RMSD）アラインメントという2軸で比較する。特定の標的に依存しない
+再利用可能なパッケージとして設計されている（`dd_prep`/`dd_af`/`dd_viewer`
+などと同じ方針——以下の例はすべてヒトCDK1、UniProt `P06493` を用いるが、
+どのアクセッション番号でも動作する）。`dd_prep`（構造ダウンロード、HETATM
+分類）と`dd_af`（fpocketベースのポケット検出）をそれぞれ再実装せず直接
+再利用する。
 
-- **Fetch (`dd_seq-fetch`)**: `list_pdb_ids_for_uniprot` (RCSB Search API)
-  finds every PDB entry cross-referenced to the accession; each is
-  downloaded via `dd_prep.fetch.download_pdb`, plus the AlphaFold DB model
-  via `dd_prep.fetch.download_afdb` and the canonical sequence via the
-  UniProt REST API. Re-running against the same `-o` directory skips
-  anything already on disk (canonical.fasta, each PDB entry, the AlphaFold
-  model) rather than re-downloading it, printing `already downloaded,
-  skipping` for each -- `list_pdb_ids_for_uniprot` itself is still queried
-  fresh every run, so a newly-released entry gets picked up on a re-run
-  without re-fetching everything else. A handful of very recently released
-  entries have no legacy `.pdb` file yet (mmCIF-only) -- these are skipped,
-  not fatal, and recorded in `manifest.json`'s `"skipped"` list.
-- **Align (`dd_seq-align`)**: for every fetched structure, extracts each
-  chain's sequence (`sequence.py`, Biopython) and glocal-aligns it against
-  the canonical sequence (free end gaps -- every input is a fragment/
-  isoform of the *same* protein, not a set of divergent homologs, so a
-  full MSA tool is unnecessary; a single reference is enough). The chain
-  actually corresponding to the protein of interest is picked by identity
-  (`pick_target_chain`, ranked by matching-residue count, not raw
-  coverage -- necessary to avoid picking a homologous partner chain, e.g.
-  CDK7 in a CAK-CDK1-cyclinB1 assembly, which can have *higher* coverage
-  than the true target chain but is mostly mismatches).
+- **Fetch（`dd_seq-fetch`）**: `list_pdb_ids_for_uniprot`（RCSB Search
+  API）が、そのアクセッション番号に紐付く全PDBエントリを見つけ、各エントリ
+  は`dd_prep.fetch.download_pdb`経由で、AlphaFold DBモデルは
+  `dd_prep.fetch.download_afdb`経由で、正準配列はUniProt REST API経由で
+  それぞれダウンロードされる。同じ`-o`ディレクトリに対して再実行すると、
+  既にディスク上にあるもの（canonical.fasta、各PDBエントリ、AlphaFold
+  モデル）は再ダウンロードせずスキップし、それぞれについて`already
+  downloaded, skipping`と表示する——`list_pdb_ids_for_uniprot`自体は毎回
+  新たに問い合わせるため、新しく公開されたエントリは他をすべて再取得する
+  ことなく再実行時に拾われる。ごく最近公開された一部のエントリには
+  legacyの`.pdb`ファイルがまだ存在しない（mmCIFのみ）——これらは致命的
+  エラーにはせずスキップし、`manifest.json`の`"skipped"`リストに記録する。
+- **Align（`dd_seq-align`）**: 取得済みの全構造について、各鎖の配列を抽出
+  し（`sequence.py`、Biopython）、正準配列に対してglocalアラインメント
+  （両端ギャップフリー）を行う——入力はすべて*同一*蛋白質の断片／アイソ
+  フォームであり、乖離したホモログ集合ではないため、本格的なMSAツールは
+  不要で、単一の参照配列で十分である。目的の蛋白質に実際に対応する鎖は
+  識別性によって選ばれる（`pick_target_chain`、生のカバレッジではなく
+  一致残基数でランク付け——これは、CAK-CDK1-サイクリンB1アセンブリ中の
+  CDK7のような相同なパートナー鎖を誤って選ばないために必要である。この鎖
+  は真の対象鎖より*高い*カバレッジを示すことがあるが、その大半はミス
+  マッチである）。
 
-  An active site is then defined once on one "site source" structure
-  (`activesite.py`, two modes -- `--site-mode ligand`: residues near the
-  auto-picked bound ligand; `--site-mode pocket`: fpocket's top-ranked
-  druggable pocket via `dd_af.pocket`) and translated into every other
-  structure's own residue numbering by round-tripping through canonical
-  UniProt positions (`map_site_to_structure`) -- this is what makes the
-  site comparable across structures with completely different numbering/
-  chain layouts. Every structure is then superposed onto one reference
-  (default: the AlphaFold model, since it's always full-length and
-  ligand-free) via PyMOL (`structalign.py`): `cmd.pair_fit` on the known
-  site-residue correspondence for `ligand`/`pocket` mode, or `cmd.cealign`
-  (topology-independent CE structural alignment, no residue
-  correspondence needed) for `--site-mode none`. A structure that doesn't
-  resolve the site at all (e.g. a co-complex crystallized around an
-  unrelated fragment of the protein, not its folded domain) is skipped
-  with a recorded reason rather than aborting the whole batch.
-- **Run (`dd_seq-run`)**: fetch + align in one step.
-- **App (`streamlit run app.py -- --report-dir DIR`)**: three tabs --
-  Overview (per-structure method/resolution/coverage/RMSD table),
-  Sequence coverage (a match/mismatch/not-resolved track per structure
-  across canonical positions), Structure overlay (py3Dmol, every
-  structure's target chain superposed and colored distinctly, active site
-  highlighted, ligands optional).
+  続いて、1つの「サイトソース」構造上でアクティブサイトを一度だけ定義し
+  （`activesite.py`、2モード——`--site-mode ligand`: 自動選択された結合
+  リガンド近傍の残基、`--site-mode pocket`: `dd_af.pocket`経由のfpocketの
+  トップランクのdruggableポケット）、UniProt正準位置を経由して往復させる
+  （`map_site_to_structure`）ことで他の各構造自身の残基番号に変換する——
+  これにより、番号付けや鎖構成が全く異なる構造間でもサイトを比較可能に
+  する。その後、全構造をPyMOL（`structalign.py`）経由で1つの参照構造に
+  重ね合わせる（既定: AlphaFoldモデル。常に全長かつリガンド無しである
+  ため）: `ligand`/`pocket`モードでは既知のサイト残基対応に対する
+  `cmd.pair_fit`を、`--site-mode none`では`cmd.cealign`（トポロジーに
+  依存しないCE構造アラインメント、残基対応不要）を用いる。サイトを全く
+  解決できない構造（例: 蛋白質の折り畳みドメインではなく無関係な断片の
+  周りで結晶化した共結晶）は、バッチ全体を中断せず、記録された理由と共に
+  スキップされる。
+- **Run（`dd_seq-run`）**: fetchとalignを1ステップで実行する。
+- **App（`streamlit run app.py -- --report-dir DIR`）**: 3タブ構成——
+  Overview（構造ごとのmethod/resolution/coverage/RMSD表）、Sequence
+  coverage（正準位置にまたがる構造ごとのmatch/mismatch/not-resolved
+  トラック）、Structure overlay（py3Dmol、各構造の対象鎖を重ね合わせて
+  色分けし、アクティブサイトをハイライト、リガンド表示は任意）。
 
-## Installation
+## インストール
 
-Requires Biopython, pandas, numpy, PyMOL (`pymol2`, importable as a
-library -- not the GUI), the `fpocket` CLI, and the `dd_prep`/`dd_af`
-packages. The `mpro` conda env already has everything:
+Biopython、pandas、numpy、PyMOL（`pymol2`、GUIではなくライブラリとして
+import可能）、`fpocket` CLI、`dd_prep`/`dd_af`パッケージが必要。`mpro`
+conda envには既にすべて揃っている:
 
 ```bash
 cd dd_prep && pip install -e . && cd ..   # if not already installed
@@ -70,60 +68,56 @@ cd dd_af && pip install -e . && cd ..     # if not already installed
 cd dd_seq && pip install -e ".[app]"      # [app] adds streamlit/py3Dmol/matplotlib
 ```
 
-This installs three console commands: `dd_seq-fetch`, `dd_seq-align`,
-`dd_seq-run`.
+これにより3つのコンソールコマンド、`dd_seq-fetch`、`dd_seq-align`、
+`dd_seq-run`がインストールされる。
 
-## Usage
+## 使い方
 
 ```bash
 dd_seq-run P06493 -o data --site-mode ligand
 streamlit run app.py -- --report-dir data
 ```
 
-`--site-mode` (default `ligand`): `ligand` (fit on residues near a bound
-ligand), `pocket` (fit on an fpocket-auto-detected druggable pocket, works
-on apo/AlphaFold structures too), or `none` (no active-site restriction,
-whole-chain CE alignment). `--reference`/`--site-source` override the
-defaults described above; `--ligand-cutoff`/`--pocket-rank` tune site
-detection.
+`--site-mode`（既定`ligand`）: `ligand`（結合リガンド近傍の残基でフィット）、
+`pocket`（fpocketが自動検出したdruggableポケットでフィット、apo構造や
+AlphaFoldモデルにも使える）、`none`（アクティブサイトによる制限無し、
+全鎖CEアラインメント）。`--reference`/`--site-source`は上記の既定値を
+上書きする。`--ligand-cutoff`/`--pocket-rank`はサイト検出を調整する。
 
-All three commands print one line per completed item as it happens
-(fetch/skip per structure, sequence-alignment result per structure,
-structural-fit result or skip reason per structure) -- pass
-`--no-progress` to suppress this and only print the final summary table.
+3つのコマンドはいずれも、完了したアイテムごとに1行ずつその場で出力する
+（構造ごとのfetch/skip、構造ごとの配列アラインメント結果、構造ごとの
+構造フィット結果またはスキップ理由）——`--no-progress`を渡すとこれを抑制
+し、最終サマリー表のみを出力する。
 
-## Design notes
+## 設計ノート
 
-- **Why not a real MSA tool**: mafft/clustalo aren't in the `mpro` env,
-  and aren't the right tool anyway -- every structure here is the same
-  protein, so a reference-based pairwise glocal alignment (Biopython
-  `PairwiseAligner`, BLOSUM62, free end gaps) against the UniProt
-  canonical sequence gives a more directly useful result (a per-canonical-
-  position coverage/mismatch table across every structure at once) than a
-  generic multiple sequence alignment would.
-- **Canonical UniProt position as the common coordinate system**: every
-  structure has its own author residue numbering (offset, insertion
-  codes, gaps from missing density); rather than trying to reconcile
-  those numbering schemes pairwise, everything (active-site residues,
-  coverage tracks) is expressed in canonical UniProt positions and
-  translated into a given structure's own numbering only at the point of
-  use (`ChainAlignment.resseq_for_canonical`/`canonical_for_resseq`).
-- **`pair_fit` over `align`/`cealign` for site-mode fitting**: the site
-  residue correspondence is already known exactly (both sides are the
-  same canonical positions), so `cmd.pair_fit` (direct Kabsch
-  superposition on given atom pairs) is used instead of `cealign`/`align`
-  (which do their own internal structural/sequence re-matching) -- no
-  risk of PyMOL silently pairing the wrong residues.
+- **本格的なMSAツールを使わない理由**: mafft/clustaloは`mpro` envに無く、
+  そもそもここでは適切なツールでもない——ここでの全構造は同一の蛋白質で
+  あるため、UniProt正準配列に対する参照基準のペアワイズglocalアラインメント
+  （Biopythonの`PairwiseAligner`、BLOSUM62、両端ギャップフリー）の方が、
+  汎用的な多重配列アラインメントよりも直接的に有用な結果（全構造にまたがる
+  正準位置ごとのカバレッジ／ミスマッチ表）を一度に与える。
+- **共通座標系としてのUniProt正準位置**: どの構造も独自のオーサー残基番号
+  （オフセット、挿入コード、欠損密度によるギャップ）を持つ。これらの
+  番号付けをペアごとに調整しようとするのではなく、すべて（アクティブ
+  サイト残基、カバレッジトラック）をUniProt正準位置で表現し、使用する
+  時点でのみ各構造自身の番号に変換する（`ChainAlignment.
+  resseq_for_canonical`/`canonical_for_resseq`）。
+- **サイトモードのフィッティングで`align`/`cealign`より`pair_fit`を使う**:
+  サイト残基の対応は（両側とも同じ正準位置であるため）既に正確にわかって
+  いるので、独自の内部構造／配列再マッチングを行う`cealign`/`align`では
+  なく、与えられた原子対に対する直接的なKabsch重ね合わせである
+  `cmd.pair_fit`を使う——PyMOLが誤った残基を黙ってペアにしてしまうリスク
+  が無い。
 
-## Known limitations
+## 既知の制約
 
-- A co-crystal where the protein of interest contributes only a small
-  unrelated peptide fragment (not its folded domain bound to a partner
-  protein's own site) will have no chain that meaningfully covers the
-  active site region -- `dd_seq-align` correctly skips these (see
-  `report.json`'s `"align_error"` per structure) rather than fitting them
-  incorrectly.
-- `site_from_pocket`/fpocket needs a single, isolated chain to detect a
-  sensible pocket; it is run on the target chain stripped of every other
-  chain, so an inter-chain-only pocket (e.g. a groove that only exists at
-  a protein-protein interface) will not be found this way.
+- 目的蛋白質が短い無関係なペプチド断片のみを提供する共結晶構造
+  （パートナー蛋白質自身のサイトに結合した折り畳みドメインではない場合）
+  は、アクティブサイト領域を意味のあるレベルでカバーする鎖を持たない——
+  `dd_seq-align`は誤ってフィットさせるのではなく、これらを正しくスキップ
+  する（構造ごとの`report.json`の`"align_error"`を参照）。
+- `site_from_pocket`/fpocketは、妥当なポケットを検出するために単一の
+  孤立した鎖を必要とする。他の全鎖を除去した対象鎖に対して実行される
+  ため、鎖間にのみ存在するポケット（例: 蛋白質間界面にのみ存在する溝）は
+  この方法では見つからない。
