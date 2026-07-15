@@ -56,7 +56,14 @@ rather than reimplementing either.
   Sequence coverage (a match/mismatch/not-resolved track per structure
   across canonical positions), Structure overlay (py3Dmol, every
   structure's target chain superposed and colored distinctly, active site
-  highlighted, ligands optional).
+  highlighted, ligands optional). The 3D scene is embedded via
+  `dd_viewer`'s double-buffered `view3d` component rather than a plain
+  `st.components.v1.html` call, so the camera position (rotation/zoom)
+  survives every widget interaction instead of snapping back to the
+  default fit; a "Reset view" button clears it back to that default fit
+  on demand. The "Highlight active-site residues" checkbox is disabled
+  when the report was built with `--site-mode none` (there is no site to
+  highlight in that case).
 
 ## Installation
 
@@ -67,7 +74,8 @@ packages. The `mpro` conda env already has everything:
 ```bash
 cd dd_prep && pip install -e . && cd ..   # if not already installed
 cd dd_af && pip install -e . && cd ..     # if not already installed
-cd dd_seq && pip install -e ".[app]"      # [app] adds streamlit/py3Dmol/matplotlib
+cd dd_viewer && pip install -e . && cd .. # if not already installed ([app] extra only, see below)
+cd dd_seq && pip install -e ".[app]"      # [app] adds streamlit/py3Dmol/matplotlib/dd_viewer
 ```
 
 This installs three console commands: `dd_seq-fetch`, `dd_seq-align`,
@@ -114,6 +122,19 @@ structural-fit result or skip reason per structure) -- pass
   superposition on given atom pairs) is used instead of `cealign`/`align`
   (which do their own internal structural/sequence re-matching) -- no
   risk of PyMOL silently pairing the wrong residues.
+- **Reusing `dd_viewer`'s `view3d` component for the 3D tab**: a plain
+  `st.components.v1.html(view._make_html())` call replaces the iframe's
+  entire content on every Streamlit rerun (any widget interaction, not
+  just ones that actually change the scene), which resets the camera to
+  the default fit every time. `dd_viewer` already solved exactly this
+  problem for its own py3Dmol embed with a small static, double-buffered
+  Streamlit component (`dd_viewer.component.view3d` +
+  `dd_viewer.scene.html_with_camera_events`): the component's own JS stays
+  alive across reruns (unlike the scene's own short-lived iframe) and
+  re-applies the last known camera position to each new scene before
+  showing it. Reusing that directly, rather than reimplementing the same
+  mechanism in `dd_seq`, is why `dd_viewer` is a dependency of the `[app]`
+  extra.
 
 ## Known limitations
 

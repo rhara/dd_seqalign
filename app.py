@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 import streamlit as st
-import streamlit.components.v1 as components
+from dd_viewer import html_with_camera_events, view3d
 
 from dd_seq import dashboard, scene, seqplot
 
@@ -56,7 +56,16 @@ def main() -> None:
         st.header("Overlay display")
         selected = st.multiselect("Structures to show", labels, default=labels)
         show_ligands = st.checkbox("Show ligands", value=True)
-        show_site = st.checkbox("Highlight active-site residues", value=report["site_mode"] != "none")
+        has_site = report["site_mode"] != "none"
+        show_site = st.checkbox(
+            "Highlight active-site residues", value=has_site, disabled=not has_site,
+            help=None if has_site else "This report was built with --site-mode none, so no active site was defined.",
+        )
+
+        if "camera_generation" not in st.session_state:
+            st.session_state.camera_generation = 0
+        if st.button("Reset view"):
+            st.session_state.camera_generation += 1
 
     tab_overview, tab_coverage, tab_overlay = st.tabs(["Overview", "Sequence coverage", "Structure overlay"])
 
@@ -87,7 +96,8 @@ def main() -> None:
             st.info("No selected structure has a superposed coordinate file to show (all skipped during alignment?).")
         else:
             view = scene.build_overlay_view(scene_structures)
-            components.html(view._make_html(), height=650, scrolling=False)
+            html = html_with_camera_events(view._make_html())
+            view3d(html, height=650, reset_camera_token=st.session_state.camera_generation)
 
         skipped = [s for s in structures if s["label"] in selected and not s.get("aligned_pdb")]
         if skipped:
