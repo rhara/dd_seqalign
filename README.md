@@ -1,3 +1,5 @@
+[Japanese version](README.jp.md)
+
 # dd_seq
 
 Compares every known structure of a protein -- every PDB entry cross-

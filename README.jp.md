@@ -1,5 +1,3 @@
-[English version](README.en.md)
-
 # dd_seq
 
 蛋白質の既知の構造すべて——UniProtアクセッション番号に紐付く全PDBエントリ
