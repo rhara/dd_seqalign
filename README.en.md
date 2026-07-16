@@ -98,9 +98,11 @@ rather than reimplementing either.
 ## Installation
 
 Requires Biopython, pandas, numpy, PyMOL (`pymol2`, importable as a
-library -- not the GUI; declared as `pymol-open-source` in
-`pyproject.toml`), the `fpocket` CLI (conda-forge only, not on PyPI), and
-the `dd_prep`/`dd_af` packages. The `dd` conda env already has everything:
+library -- not the GUI; the conda-forge package is named
+`pymol-open-source`, but its actual distribution name as seen by `pip
+list`/`pip show` is `pymol`, so `pyproject.toml` declares it as `pymol`),
+the `fpocket` CLI (conda-forge only, not on PyPI), and the `dd_prep`/`dd_af`
+packages. The `dd` conda env already has everything:
 
 ```bash
 cd dd_prep && pip install -e . && cd ..   # if not already installed

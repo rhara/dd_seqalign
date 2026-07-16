@@ -91,9 +91,11 @@
 ## インストール
 
 Biopython、pandas、numpy、PyMOL（`pymol2`、GUIではなくライブラリとして
-import可能。`pyproject.toml`では`pymol-open-source`として明記済み）、
-`fpocket` CLI（pipでは入らないためconda-forge必須）、`dd_prep`/`dd_af`
-パッケージが必要。`dd` conda envには既にすべて揃っている:
+import可能。conda-forgeのパッケージ名は`pymol-open-source`だが、
+`pip list`/`pip show`から見えるディストリビューション名は`pymol`のため、
+`pyproject.toml`では`pymol`として明記済み）、`fpocket` CLI（pipでは
+入らないためconda-forge必須）、`dd_prep`/`dd_af`パッケージが必要。`dd`
+conda envには既にすべて揃っている:
 
 ```bash
 cd dd_prep && pip install -e . && cd ..   # if not already installed
