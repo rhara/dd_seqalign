@@ -104,9 +104,11 @@ library -- not the GUI; the conda-forge package is named
 `pymol-open-source`, but its actual distribution name as seen by `pip
 list`/`pip show` is `pymol`, so `pyproject.toml` declares it as `pymol`),
 the `fpocket` CLI (conda-forge only, not on PyPI), and the `dd_prep`/`dd_af`
-packages (`dd_viewer` too, for the `[app]` extra). `dd_seqalign` has its own
-dedicated conda env (not the shared `dd` env the older sibling projects
-still use):
+packages. `dd_viewer` (needed for the `[app]` extra's 3D view) is vendored
+directly in this repo (`dd_viewer/`, absorbed unmodified from the retired
+standalone `dd_viewer` project) rather than installed separately.
+`dd_seqalign` has its own dedicated conda env (not the shared `dd` env the
+older sibling projects still use):
 
 ```bash
 mamba create -n dd_seqalign -c conda-forge python=3.12 biopython pandas \
@@ -115,8 +117,7 @@ conda activate dd_seqalign
 
 cd dd_prep && pip install --no-deps -e . && cd ..   # if not already installed
 cd dd_af && pip install --no-deps -e . && cd ..     # if not already installed
-cd dd_viewer && pip install --no-deps -e . && cd .. # if not already installed ([app] extra only, see below)
-cd dd_seqalign && pip install --no-deps -e ".[app]" # [app] adds streamlit/py3Dmol/matplotlib/dd_viewer
+cd dd_seqalign && pip install --no-deps -e ".[app]" # [app] adds streamlit/py3Dmol/matplotlib
 ```
 
 This installs three console commands: `dd_seqalign-fetch`, `dd_seqalign-align`,
@@ -174,8 +175,8 @@ structural-fit result or skip reason per structure) -- pass
   alive across reruns (unlike the scene's own short-lived iframe) and
   re-applies the last known camera position to each new scene before
   showing it. Reusing that directly, rather than reimplementing the same
-  mechanism in `dd_seqalign`, is why `dd_viewer` is a dependency of the `[app]`
-  extra.
+  mechanism in `dd_seqalign`, is why `dd_viewer` is vendored here (see
+  Installation above).
 
 ## Known limitations
 
