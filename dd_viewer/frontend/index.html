@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: transparent; }
+  #stack { position: relative; width: 100%; }
+  #stack iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    border: none; opacity: 0; transition: opacity 0.15s ease-in-out;
+  }
+  #stack iframe.active { opacity: 1; z-index: 1; }
+</style>
+</head>
+<body>
+<div id="stack">
+  <iframe id="frameA" title="scene-a"></iframe>
+  <iframe id="frameB" title="scene-b"></iframe>
+</div>
+<script>
+// Double-buffered display for py3Dmol scenes embedded via plviewerlib.
+//
+// A plain st.iframe(html) call swaps the iframe's srcdoc on every Streamlit
+// rerun; the browser tears down the old document immediately, so there's a
+// visible blank flash before the new scene finishes loading its JS,
+// re-parsing the model, and re-rendering. Because this is a *static*
+// Streamlit component, its own outer iframe is loaded exactly once (its src
+// is a fixed local URL that never changes across reruns) and Streamlit talks
+// to it via postMessage instead of reloading it -- so this script can stay
+// alive across reruns and keep two hidden/visible inner iframes, loading a
+// new scene into the currently-hidden one and only swapping visibility once
+// that scene reports (via its own postMessage, injected by
+// scene.html_with_camera_events) that it has actually finished painting.
+//
+// The same always-alive JS context also carries the camera position
+// (rotation/zoom) across scenes: each scene reports its `getView()` state on
+// every drag/zoom, we keep the latest one in `lastView`, and stamp it into
+// the *next* scene's HTML (as a post-render setView() call) before loading
+// it -- sessionStorage looked simpler at first but each srcdoc-loaded scene
+// turned out to get its own isolated storage partition even when nested in
+// the same component, so nothing actually persisted through it.
+
+function sendToStreamlit(type, data) {
+  window.parent.postMessage(Object.assign({isStreamlitMessage: true, type: type}, data), "*");
+}
+
+var frames = {A: document.getElementById("frameA"), B: document.getElementById("frameB")};
+var activeKey = null;      // "A" or "B" -- which buffer is currently visible
+var pendingKey = null;     // buffer currently loading a new scene, awaiting its ready signal
+var currentHtml = null;    // last scene html we were asked to show (dedupe redundant reruns)
+var lastView = null;       // most recent camera state (3Dmol getView() array)
+var lastResetToken = null; // last-seen reset_token prop; a change clears lastView
+
+function otherKey(k) { return k === "A" ? "B" : "A"; }
+
+function showFrame(key) {
+  frames.A.classList.toggle("active", key === "A");
+  frames.B.classList.toggle("active", key === "B");
+  activeKey = key;
+}
+
+function withCameraRestore(html) {
+  if (!lastView) return html;
+  var m = html.match(/viewer_(\d+)\.render\(\);/);
+  if (!m) return html;
+  var viewerVar = "viewer_" + m[1];
+  var snippet = "\ntry { " + viewerVar + ".setView(" + JSON.stringify(lastView) + "); "
+    + viewerVar + ".render(); } catch (e) {}\n";
+  return html.replace(m[0], m[0] + snippet);
+}
+
+function loadScene(html) {
+  var targetKey = activeKey === null ? "A" : otherKey(activeKey);
+  pendingKey = targetKey;
+  frames[targetKey].srcdoc = withCameraRestore(html);
+}
+
+function onSceneReady(key) {
+  if (key !== pendingKey) return;
+  pendingKey = null;
+  var previousKey = activeKey;
+  showFrame(key);
+  if (previousKey && previousKey !== key) {
+    // Release the now-hidden frame's WebGL context/geometry once the
+    // cross-fade finishes, so repeated swaps don't leak GL contexts.
+    setTimeout(function() {
+      frames[previousKey].srcdoc = "about:blank";
+    }, 250);
+  }
+}
+
+window.addEventListener("message", function(event) {
+  var data = event.data || {};
+  if (data.type === "streamlit:render") {
+    var args = data.args || {};
+    var height = args.height || 650;
+    document.getElementById("stack").style.height = height + "px";
+    sendToStreamlit("streamlit:setFrameHeight", {height: height});
+    if (args.reset_token !== undefined) {
+      if (lastResetToken !== null && args.reset_token !== lastResetToken) {
+        lastView = null;
+      }
+      lastResetToken = args.reset_token;
+    }
+    if (args.html && args.html !== currentHtml) {
+      currentHtml = args.html;
+      loadScene(args.html);
+    }
+    return;
+  }
+  if (data.plviewerCameraUpdate) {
+    lastView = data.view;
+    return;
+  }
+  if (data.plviewerReady && event.source) {
+    if (event.source === frames.A.contentWindow) onSceneReady("A");
+    else if (event.source === frames.B.contentWindow) onSceneReady("B");
+  }
+});
+
+window.addEventListener("DOMContentLoaded", function() {
+  sendToStreamlit("streamlit:componentReady", {apiVersion: 1});
+});
+</script>
+</body>
+</html>
