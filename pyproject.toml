@@ -1,5 +1,5 @@
 [project]
-name = "dd_seq"
+name = "dd_seqalign"
 version = "0.1.0"
 description = "Compare all known structures (PDB + AlphaFold DB) of a protein: sequence coverage vs. the canonical UniProt sequence, and active-site-based structural (RMSD) alignment, with interactive visualization"
 readme = "README.md"
@@ -11,13 +11,13 @@ dependencies = ["biopython", "pandas", "numpy", "dd_prep", "dd_af", "pymol"]
 app = ["streamlit", "py3Dmol", "matplotlib", "dd_viewer"]
 
 [project.scripts]
-dd_seq-fetch = "dd_seq.cli:main_fetch"
-dd_seq-align = "dd_seq.cli:main_align"
-dd_seq-run = "dd_seq.cli:main_run"
+dd_seqalign-fetch = "dd_seqalign.cli:main_fetch"
+dd_seqalign-align = "dd_seqalign.cli:main_align"
+dd_seqalign-run = "dd_seqalign.cli:main_run"
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["dd_seq"]
+packages = ["dd_seqalign"]

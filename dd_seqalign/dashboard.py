@@ -1,4 +1,4 @@
-"""Summary table (one row per structure) from a dd_seq report.json --
+"""Summary table (one row per structure) from a dd_seqalign report.json --
 the tabular counterpart to `scene.py`'s 3D overlay and `seqplot.py`'s
 coverage track.
 """

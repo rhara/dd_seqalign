@@ -1,7 +1,7 @@
-"""Streamlit UI for dd_seq.
+"""Streamlit UI for dd_seqalign.
 
-Run with `streamlit run app.py -- --report-dir data` (after `dd_seq-run`/
-`dd_seq-fetch`+`dd_seq-align` have populated that directory with
+Run with `streamlit run app.py -- --report-dir data` (after `dd_seqalign-run`/
+`dd_seqalign-fetch`+`dd_seqalign-align` have populated that directory with
 `report.json` and `aligned/*_aligned.pdb`), or just `streamlit run app.py`
 and enter the directory in the sidebar.
 """
@@ -13,9 +13,9 @@ from pathlib import Path
 import streamlit as st
 from dd_viewer import html_with_camera_events, view3d
 
-from dd_seq import dashboard, scene, seqplot
+from dd_seqalign import dashboard, scene, seqplot
 
-st.set_page_config(page_title="dd_seq", layout="wide")
+st.set_page_config(page_title="dd_seqalign", layout="wide")
 
 
 def _parse_cli_defaults() -> argparse.Namespace:
@@ -32,15 +32,15 @@ def _load_report(report_dir: str) -> dict:
 
 def main() -> None:
     defaults = _parse_cli_defaults()
-    st.title("dd_seq -- structure & sequence comparison")
+    st.title("dd_seqalign -- structure & sequence comparison")
 
     with st.sidebar:
         st.header("Report")
-        report_dir = st.text_input("Report directory (dd_seq-run/-align output)", value=defaults.report_dir or "data")
+        report_dir = st.text_input("Report directory (dd_seqalign-run/-align output)", value=defaults.report_dir or "data")
 
     report_path = Path(report_dir) / "report.json"
     if not report_path.exists():
-        st.info(f"No report.json found in {report_dir!r}. Run `dd_seq-run UNIPROT -o {report_dir}` first.")
+        st.info(f"No report.json found in {report_dir!r}. Run `dd_seqalign-run UNIPROT -o {report_dir}` first.")
         st.stop()
 
     report = _load_report(report_dir)

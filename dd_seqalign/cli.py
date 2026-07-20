@@ -1,7 +1,7 @@
 """Command-line entry points:
-  dd_seq-fetch  UNIPROT -o out_dir
-  dd_seq-align  out_dir --site-mode {pocket,ligand,none}
-  dd_seq-run    UNIPROT -o out_dir --site-mode {pocket,ligand,none}
+  dd_seqalign-fetch  UNIPROT -o out_dir
+  dd_seqalign-align  out_dir --site-mode {pocket,ligand,none}
+  dd_seqalign-run    UNIPROT -o out_dir --site-mode {pocket,ligand,none}
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from .structalign import SITE_MODES
 
 def build_fetch_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="dd_seq-fetch",
+        prog="dd_seqalign-fetch",
         description="Download every known structure (all cross-referenced PDB entries + the AlphaFold DB model) of a protein, given its UniProt accession.",
     )
     parser.add_argument("uniprot", help="UniProt accession, e.g. P06493")
@@ -37,18 +37,18 @@ def _add_align_args(parser: argparse.ArgumentParser) -> None:
 
 def build_align_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="dd_seq-align",
+        prog="dd_seqalign-align",
         description="Align every fetched structure's sequence to the UniProt canonical sequence, and superpose every structure onto one reference by active site (or whole-chain).",
     )
-    parser.add_argument("out_dir", help="Directory previously populated by dd_seq-fetch")
+    parser.add_argument("out_dir", help="Directory previously populated by dd_seqalign-fetch")
     _add_align_args(parser)
     return parser
 
 
 def build_run_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="dd_seq-run",
-        description="dd_seq-fetch followed by dd_seq-align in one step.",
+        prog="dd_seqalign-run",
+        description="dd_seqalign-fetch followed by dd_seqalign-align in one step.",
     )
     parser.add_argument("uniprot", help="UniProt accession, e.g. P06493")
     parser.add_argument("-o", "--out-dir", required=True, help="Output directory")

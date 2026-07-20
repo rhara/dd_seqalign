@@ -94,7 +94,7 @@ def site_from_pocket(
         raise ValueError(f"{pdb_path}: no protein atoms found for chain {chain_id!r}")
 
     own_tmp = work_dir is None
-    work_dir = Path(work_dir) if work_dir else Path(tempfile.mkdtemp(prefix="dd_seq_pocket_"))
+    work_dir = Path(work_dir) if work_dir else Path(tempfile.mkdtemp(prefix="dd_seqalign_pocket_"))
     work_dir.mkdir(parents=True, exist_ok=True)
     chain_pdb = work_dir / f"{Path(pdb_path).stem}_{chain_id}_protein.pdb"
     chain_pdb.write_text("\n".join(protein_lines) + "\nEND\n")

@@ -1,6 +1,6 @@
 [Japanese version](README.jp.md)
 
-# dd_seq
+# dd_seqalign — One accession, every structure: sequence coverage meets active-site RMSD
 
 Compares every known structure of a protein -- every PDB entry cross-
 referenced to a UniProt accession (X-ray, EM, any oligomeric state or
@@ -13,7 +13,7 @@ accession works). Reuses `dd_prep` (structure download, HETATM
 classification) and `dd_af` (fpocket-based pocket detection) directly
 rather than reimplementing either.
 
-- **Fetch (`dd_seq-fetch`)**: `list_pdb_ids_for_uniprot` (RCSB Search API)
+- **Fetch (`dd_seqalign-fetch`)**: `list_pdb_ids_for_uniprot` (RCSB Search API)
   finds every PDB entry cross-referenced to the accession; each is
   downloaded via `dd_prep.fetch.download_pdb`, plus the AlphaFold DB model
   via `dd_prep.fetch.download_afdb` and the canonical sequence via the
@@ -25,7 +25,7 @@ rather than reimplementing either.
   without re-fetching everything else. A handful of very recently released
   entries have no legacy `.pdb` file yet (mmCIF-only) -- these are skipped,
   not fatal, and recorded in `manifest.json`'s `"skipped"` list.
-- **Align (`dd_seq-align`)**: for every fetched structure, extracts each
+- **Align (`dd_seqalign-align`)**: for every fetched structure, extracts each
   chain's sequence (`sequence.py`, Biopython) and glocal-aligns it against
   the canonical sequence (free end gaps -- every input is a fragment/
   isoform of the *same* protein, not a set of divergent homologs, so a
@@ -52,7 +52,7 @@ rather than reimplementing either.
   resolve the site at all (e.g. a co-complex crystallized around an
   unrelated fragment of the protein, not its folded domain) is skipped
   with a recorded reason rather than aborting the whole batch.
-- **Run (`dd_seq-run`)**: fetch + align in one step.
+- **Run (`dd_seqalign-run`)**: fetch + align in one step.
 - **App (`streamlit run app.py -- --report-dir DIR`)**: three tabs --
   Overview (per-structure method/resolution/coverage/RMSD table -- sized
   via an explicit `height` computed from the row count so the table
@@ -104,22 +104,28 @@ library -- not the GUI; the conda-forge package is named
 `pymol-open-source`, but its actual distribution name as seen by `pip
 list`/`pip show` is `pymol`, so `pyproject.toml` declares it as `pymol`),
 the `fpocket` CLI (conda-forge only, not on PyPI), and the `dd_prep`/`dd_af`
-packages. The `dd` conda env already has everything:
+packages (`dd_viewer` too, for the `[app]` extra). `dd_seqalign` has its own
+dedicated conda env (not the shared `dd` env the older sibling projects
+still use):
 
 ```bash
-cd dd_prep && pip install -e . && cd ..   # if not already installed
-cd dd_af && pip install -e . && cd ..     # if not already installed
-cd dd_viewer && pip install -e . && cd .. # if not already installed ([app] extra only, see below)
-cd dd_seq && pip install -e ".[app]"      # [app] adds streamlit/py3Dmol/matplotlib/dd_viewer
+mamba create -n dd_seqalign -c conda-forge python=3.12 biopython pandas \
+    numpy matplotlib py3dmol streamlit pymol-open-source fpocket rdkit
+conda activate dd_seqalign
+
+cd dd_prep && pip install --no-deps -e . && cd ..   # if not already installed
+cd dd_af && pip install --no-deps -e . && cd ..     # if not already installed
+cd dd_viewer && pip install --no-deps -e . && cd .. # if not already installed ([app] extra only, see below)
+cd dd_seqalign && pip install --no-deps -e ".[app]" # [app] adds streamlit/py3Dmol/matplotlib/dd_viewer
 ```
 
-This installs three console commands: `dd_seq-fetch`, `dd_seq-align`,
-`dd_seq-run`.
+This installs three console commands: `dd_seqalign-fetch`, `dd_seqalign-align`,
+`dd_seqalign-run`.
 
 ## Usage
 
 ```bash
-dd_seq-run P06493 -o data --site-mode ligand
+dd_seqalign-run P06493 -o data --site-mode ligand
 streamlit run app.py -- --report-dir data
 ```
 
@@ -137,7 +143,7 @@ structural-fit result or skip reason per structure) -- pass
 
 ## Design notes
 
-- **Why not a real MSA tool**: mafft/clustalo aren't in the `mpro` env,
+- **Why not a real MSA tool**: mafft/clustalo aren't in the `dd_seqalign` env,
   and aren't the right tool anyway -- every structure here is the same
   protein, so a reference-based pairwise glocal alignment (Biopython
   `PairwiseAligner`, BLOSUM62, free end gaps) against the UniProt
@@ -168,7 +174,7 @@ structural-fit result or skip reason per structure) -- pass
   alive across reruns (unlike the scene's own short-lived iframe) and
   re-applies the last known camera position to each new scene before
   showing it. Reusing that directly, rather than reimplementing the same
-  mechanism in `dd_seq`, is why `dd_viewer` is a dependency of the `[app]`
+  mechanism in `dd_seqalign`, is why `dd_viewer` is a dependency of the `[app]`
   extra.
 
 ## Known limitations
@@ -176,7 +182,7 @@ structural-fit result or skip reason per structure) -- pass
 - A co-crystal where the protein of interest contributes only a small
   unrelated peptide fragment (not its folded domain bound to a partner
   protein's own site) will have no chain that meaningfully covers the
-  active site region -- `dd_seq-align` correctly skips these (see
+  active site region -- `dd_seqalign-align` correctly skips these (see
   `report.json`'s `"align_error"` per structure) rather than fitting them
   incorrectly.
 - `site_from_pocket`/fpocket needs a single, isolated chain to detect a

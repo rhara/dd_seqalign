@@ -1,7 +1,7 @@
 """Fast, offline unit tests for sequence.py's alignment logic (no
-network, no PyMOL/fpocket) -- the parts of dd_seq that don't need a real
+network, no PyMOL/fpocket) -- the parts of dd_seqalign that don't need a real
 structure file or external tool to exercise meaningfully."""
-from dd_seq.sequence import ChainSequence, align_to_canonical, pick_target_chain
+from dd_seqalign.sequence import ChainSequence, align_to_canonical, pick_target_chain
 
 CANONICAL = "MEDYTKIEKIGEGTYGVVYKGRHKTTGQVVAMKKIRLESEEEGVPSTAIREISLLKELRHPNIVSLQDVLMQDSRLYLIFEFLSMDLKKYLDSI"
 
