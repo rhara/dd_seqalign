@@ -17,8 +17,7 @@ from typing import Dict, List, Optional, Sequence, Union
 
 import py3Dmol
 
-from dd_prep.hetero import classify_hetero_groups, pick_ligand_of_interest
-from dd_prep.parse import collect_hetero_groups
+from .pdbio import classify_hetero_groups, collect_hetero_groups, pick_ligand_of_interest
 
 PALETTE = [
     "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",

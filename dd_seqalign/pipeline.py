@@ -1,5 +1,4 @@
-"""End-to-end orchestration in two phases, mirroring dd_prep/dd_afpocket's own
-fetch-then-process split:
+"""End-to-end orchestration in two phases:
 
 - `fetch_all`: discover and download every known structure of a protein
   (every cross-referenced PDB entry, plus the AlphaFold DB model) and the
@@ -18,10 +17,8 @@ import urllib.error
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-import dd_prep.fetch as dd_prep_fetch
-
 from . import activesite, structalign
-from .fetch import fetch_entry_metadata, fetch_uniprot_fasta, list_pdb_ids_for_uniprot
+from .fetch import download_afdb, download_pdb, fetch_entry_metadata, fetch_uniprot_fasta, list_pdb_ids_for_uniprot
 from .sequence import align_to_canonical, extract_chain_sequences, pick_target_chain
 
 AFDB_LABEL = "AFDB"
@@ -29,16 +26,16 @@ AFDB_LABEL = "AFDB"
 
 def fetch_all(uniprot_id: str, out_dir: Union[str, Path], *, show_progress: bool = True) -> dict:
     """Download every RCSB entry cross-referenced to `uniprot_id`, its
-    AlphaFold DB model, and the UniProt canonical sequence. Cached like
-    `dd_prep.fetch`: re-running with the same `out_dir` skips files
-    already on disk. `out_dir` is resolved to an absolute path before any
+    AlphaFold DB model, and the UniProt canonical sequence. Cached:
+    re-running with the same `out_dir` skips files already on disk.
+    `out_dir` is resolved to an absolute path before any
     path gets written into manifest.json/report.json, so those stay valid
     regardless of which directory a later process (e.g. the Streamlit app)
     happens to be run from.
 
     `show_progress` prints one line per completed item as it happens
-    (`print(..., flush=True)`, same convention as dd_prep/dd_afpocket) -- there
-    is no `--n-jobs` here (fetches are sequential, one entry at a time),
+    (`print(..., flush=True)`) -- there is no `--n-jobs` here (fetches
+    are sequential, one entry at a time),
     so unlike those sibling projects' `parallel_map`-driven CLI loops, the
     progress printing lives directly in this function rather than in
     `cli.py`.
@@ -70,7 +67,7 @@ def fetch_all(uniprot_id: str, out_dir: Union[str, Path], *, show_progress: bool
         already_had_it = dest.exists()
         if not already_had_it:
             try:
-                dd_prep_fetch.download_pdb(pdb_id, dest)
+                download_pdb(pdb_id, dest)
             except urllib.error.HTTPError as e:
                 # A handful of very recently released entries have no legacy
                 # .pdb file generated yet (mmCIF-only) -- skip rather than
@@ -95,7 +92,7 @@ def fetch_all(uniprot_id: str, out_dir: Union[str, Path], *, show_progress: bool
 
     afdb_dest = raw_dir / f"{AFDB_LABEL}_raw.pdb"
     afdb_already_had_it = afdb_dest.exists()
-    dd_prep_fetch.download_afdb(uniprot_id, afdb_dest)
+    download_afdb(uniprot_id, afdb_dest)
     entries.append(
         {
             "label": AFDB_LABEL, "kind": "afdb", "path": str(afdb_dest),

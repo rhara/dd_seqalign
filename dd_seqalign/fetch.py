@@ -2,10 +2,11 @@
 entries cross-referenced to a UniProt accession (RCSB Search API) plus its
 AlphaFold DB predicted model, and the UniProt canonical sequence itself
 (the reference every structure's own sequence gets compared against in
-`sequence.py`). Actual structure file download is not reimplemented here --
-`dd_prep.fetch.download_pdb`/`download_afdb` already do that (with local-file
-caching), so `pipeline.py` calls those directly; this module only adds the
-"which PDB entries exist for this UniProt accession" lookup and PDB entries'
+`sequence.py`). `download_pdb`/`download_afdb` (local-file caching) are
+vendored (not imported) from `dd_prep.fetch` -- dd_seqalign only needs these
+two small stdlib-only functions, not the rest of dd_prep -- and are called
+directly by `pipeline.py`; the rest of this module adds the "which PDB
+entries exist for this UniProt accession" lookup and PDB entries'
 experimental metadata, neither of which dd_prep needs for its own job of
 prepping a single already-chosen structure.
 """
@@ -14,11 +15,45 @@ from __future__ import annotations
 import json
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 UNIPROT_FASTA = "https://rest.uniprot.org/uniprotkb/{accession}.fasta"
 RCSB_SEARCH = "https://search.rcsb.org/rcsbsearch/v2/query"
 RCSB_ENTRY = "https://data.rcsb.org/rest/v1/core/entry/{pdb_id}"
+RCSB_PDB = "https://files.rcsb.org/download/{pdb_id}.pdb"
+AFDB_API = "https://alphafold.ebi.ac.uk/api/prediction/{uniprot_id}"
+
+
+def download_pdb(pdb_id: str, dest: Path) -> str:
+    """Fetch a raw PDB entry from RCSB and return its text contents."""
+    dest = Path(dest)
+    if not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(RCSB_PDB.format(pdb_id=pdb_id.upper()), dest)
+    return dest.read_text()
+
+
+def resolve_afdb_pdb_url(uniprot_id: str) -> str:
+    """Look up the current model version's PDB URL for a UniProt accession
+    via the AlphaFold DB REST API (model version numbers change over time,
+    e.g. v4 -> v6, so this must not be hardcoded)."""
+    with urllib.request.urlopen(AFDB_API.format(uniprot_id=uniprot_id.upper())) as fh:
+        entries = json.load(fh)
+    if not entries:
+        raise ValueError(f"AlphaFold DB has no entry for {uniprot_id!r}")
+    return entries[0]["pdbUrl"]
+
+
+def download_afdb(uniprot_id: str, dest: Path) -> str:
+    """Fetch the current AlphaFold DB model for a UniProt accession and
+    return its text contents."""
+    dest = Path(dest)
+    if not dest.exists():
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        url = resolve_afdb_pdb_url(uniprot_id)
+        urllib.request.urlretrieve(url, dest)
+    return dest.read_text()
 
 
 def fetch_uniprot_fasta(accession: str) -> str:

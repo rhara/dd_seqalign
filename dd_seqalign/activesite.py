@@ -3,10 +3,10 @@ a detected site into any other structure's own numbering via the canonical-
 UniProt-position coordinate system `sequence.py` establishes.
 
 - `site_from_ligand`: distance-based, around the structure's own bound
-  ligand (reuses `dd_prep.hetero`'s water/additive/cofactor/unknown
-  classification to find the real ligand rather than a cryoprotectant).
-  Only usable on structures that actually have a ligand.
-- `site_from_pocket`: fpocket-based auto-detection (reuses `dd_afpocket.pocket`),
+  ligand (reuses `pdbio`'s water/additive/cofactor/unknown classification
+  to find the real ligand rather than a cryoprotectant). Only usable on
+  structures that actually have a ligand.
+- `site_from_pocket`: fpocket-based auto-detection (reuses `pocket`),
   usable on any structure including apo ones and the AlphaFold model.
 
 Both return residues as (chain_id, author_resseq) pairs in the *input
@@ -25,10 +25,8 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 from Bio.PDB import NeighborSearch, PDBParser
 
-from dd_afpocket.pocket import find_druggable_pocket
-from dd_prep.hetero import classify_hetero_groups, pick_ligand_of_interest
-from dd_prep.parse import collect_hetero_groups, group_coords, select_protein
-
+from .pdbio import classify_hetero_groups, collect_hetero_groups, group_coords, pick_ligand_of_interest, select_protein
+from .pocket import find_druggable_pocket
 from .sequence import ChainAlignment
 
 SiteResidue = Tuple[str, int]  # (chain_id, author resseq)
@@ -39,7 +37,7 @@ def site_from_ligand(
 ) -> List[SiteResidue]:
     """Protein residues with any atom within `cutoff` Angstrom of the
     structure's auto-picked ligand of interest (see
-    `dd_prep.hetero.pick_ligand_of_interest`). Returns `[]` if this
+    `pdbio.pick_ligand_of_interest`). Returns `[]` if this
     structure has no plausible ligand (apo structures, the AlphaFold
     model) -- callers should fall back to `site_from_pocket` in that case.
     `chain_id`, if given, restricts the result to that chain (the target
@@ -80,7 +78,7 @@ def site_from_ligand(
 def site_from_pocket(
     pdb_path: Union[str, Path], *, chain_id: str, work_dir: Optional[Union[str, Path]] = None, pocket_rank: int = 1,
 ) -> List[SiteResidue]:
-    """Auto-detected druggable pocket (fpocket, via `dd_afpocket.pocket`) on the
+    """Auto-detected druggable pocket (fpocket, via `pocket`) on the
     given chain in isolation -- the input is first stripped to that
     chain's protein atoms only (a temp file) so fpocket sees a single
     kinase domain rather than e.g. a CDK1/CyclinB/Cks2 assembly, which
