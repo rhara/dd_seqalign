@@ -5,7 +5,7 @@ description = "Compare all known structures (PDB + AlphaFold DB) of a protein: s
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-dependencies = ["biopython", "pandas", "numpy", "dd_prep", "dd_af", "pymol"]
+dependencies = ["biopython", "pandas", "numpy", "dd_prep", "dd_afpocket", "pymol"]
 
 [project.optional-dependencies]
 app = ["streamlit", "py3Dmol", "matplotlib"]

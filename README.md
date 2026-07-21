@@ -7,10 +7,10 @@ referenced to a UniProt accession (X-ray, EM, any oligomeric state or
 fragment), plus the AlphaFold DB predicted model -- on two axes: sequence
 coverage against the canonical UniProt sequence, and active-site-based
 structural (RMSD) alignment. Designed as a reusable package, not tied to
-any specific target (same philosophy as `dd_prep`/`dd_af`/`dd_viewer`/etc.
+any specific target (same philosophy as `dd_prep`/`dd_afpocket`/`dd_viewer`/etc.
 -- every example below uses human CDK1, UniProt `P06493`, but any
 accession works). Reuses `dd_prep` (structure download, HETATM
-classification) and `dd_af` (fpocket-based pocket detection) directly
+classification) and `dd_afpocket` (fpocket-based pocket detection) directly
 rather than reimplementing either.
 
 - **Fetch (`dd_seqalign-fetch`)**: `list_pdb_ids_for_uniprot` (RCSB Search API)
@@ -39,7 +39,7 @@ rather than reimplementing either.
   An active site is then defined once on one "site source" structure
   (`activesite.py`, two modes -- `--site-mode ligand`: residues near the
   auto-picked bound ligand; `--site-mode pocket`: fpocket's top-ranked
-  druggable pocket via `dd_af.pocket`) and translated into every other
+  druggable pocket via `dd_afpocket.pocket`) and translated into every other
   structure's own residue numbering by round-tripping through canonical
   UniProt positions (`map_site_to_structure`) -- this is what makes the
   site comparable across structures with completely different numbering/
@@ -103,7 +103,7 @@ Requires Biopython, pandas, numpy, PyMOL (`pymol2`, importable as a
 library -- not the GUI; the conda-forge package is named
 `pymol-open-source`, but its actual distribution name as seen by `pip
 list`/`pip show` is `pymol`, so `pyproject.toml` declares it as `pymol`),
-the `fpocket` CLI (conda-forge only, not on PyPI), and the `dd_prep`/`dd_af`
+the `fpocket` CLI (conda-forge only, not on PyPI), and the `dd_prep`/`dd_afpocket`
 packages. `dd_viewer` (needed for the `[app]` extra's 3D view) is vendored
 directly in this repo (`dd_viewer/`, absorbed unmodified from the retired
 standalone `dd_viewer` project) rather than installed separately.
@@ -116,7 +116,7 @@ mamba create -n dd_seqalign -c conda-forge python=3.12 biopython pandas \
 conda activate dd_seqalign
 
 cd dd_prep && pip install --no-deps -e . && cd ..   # if not already installed
-cd dd_af && pip install --no-deps -e . && cd ..     # if not already installed
+cd dd_afpocket && pip install --no-deps -e . && cd ..     # if not already installed
 cd dd_seqalign && pip install --no-deps -e ".[app]" # [app] adds streamlit/py3Dmol/matplotlib
 ```
 

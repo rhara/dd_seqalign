@@ -6,7 +6,7 @@ UniProt-position coordinate system `sequence.py` establishes.
   ligand (reuses `dd_prep.hetero`'s water/additive/cofactor/unknown
   classification to find the real ligand rather than a cryoprotectant).
   Only usable on structures that actually have a ligand.
-- `site_from_pocket`: fpocket-based auto-detection (reuses `dd_af.pocket`),
+- `site_from_pocket`: fpocket-based auto-detection (reuses `dd_afpocket.pocket`),
   usable on any structure including apo ones and the AlphaFold model.
 
 Both return residues as (chain_id, author_resseq) pairs in the *input
@@ -25,7 +25,7 @@ from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 from Bio.PDB import NeighborSearch, PDBParser
 
-from dd_af.pocket import find_druggable_pocket
+from dd_afpocket.pocket import find_druggable_pocket
 from dd_prep.hetero import classify_hetero_groups, pick_ligand_of_interest
 from dd_prep.parse import collect_hetero_groups, group_coords, select_protein
 
@@ -80,7 +80,7 @@ def site_from_ligand(
 def site_from_pocket(
     pdb_path: Union[str, Path], *, chain_id: str, work_dir: Optional[Union[str, Path]] = None, pocket_rank: int = 1,
 ) -> List[SiteResidue]:
-    """Auto-detected druggable pocket (fpocket, via `dd_af.pocket`) on the
+    """Auto-detected druggable pocket (fpocket, via `dd_afpocket.pocket`) on the
     given chain in isolation -- the input is first stripped to that
     chain's protein atoms only (a temp file) so fpocket sees a single
     kinase domain rather than e.g. a CDK1/CyclinB/Cks2 assembly, which

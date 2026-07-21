@@ -1,4 +1,4 @@
-"""End-to-end orchestration in two phases, mirroring dd_prep/dd_af's own
+"""End-to-end orchestration in two phases, mirroring dd_prep/dd_afpocket's own
 fetch-then-process split:
 
 - `fetch_all`: discover and download every known structure of a protein
@@ -37,7 +37,7 @@ def fetch_all(uniprot_id: str, out_dir: Union[str, Path], *, show_progress: bool
     happens to be run from.
 
     `show_progress` prints one line per completed item as it happens
-    (`print(..., flush=True)`, same convention as dd_prep/dd_af) -- there
+    (`print(..., flush=True)`, same convention as dd_prep/dd_afpocket) -- there
     is no `--n-jobs` here (fetches are sequential, one entry at a time),
     so unlike those sibling projects' `parallel_map`-driven CLI loops, the
     progress printing lives directly in this function rather than in
